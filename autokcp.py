@@ -37,7 +37,7 @@ optionList = [
 #######################################################
 
 options = {
-    'crtpy': [
+    'crypt': [
         'aes',
         'aes-128',
         'aes-192',
@@ -213,7 +213,6 @@ def Run():
     clientSSH.close()
     with open(pathOutJsonFile, 'w+') as file:
         json.dump(logout, file)
-    os.system('clear')
     return
 
 def Clean():
