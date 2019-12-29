@@ -25,12 +25,14 @@ portKcptunServer = '9990'
 portKcptunClient = '9469'
 setConfig = {
     'crypt': 'aes',
-    'mode': 'fast3',
+    'nocomp':'',
+    'mode': 'fast2',
     'quiet': '',
     'smuxver': '2'
 }
 optionList = [
-    'sockbuf'
+    'sockbuf',
+    'smuxbuf'
 ]
 #######################################################
 
