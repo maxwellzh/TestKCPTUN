@@ -1,0 +1,14 @@
+{
+    "-l [::]:9990 -t [::1]:5201 --crypt aes --mode fast3 --quiet  --smuxver 2 --smuxbuf 4194304 --sockbuf 4194304": [
+        "[  4]   0.00-5.00   sec  10.0 MBytes  16.8 Mbits/sec    0             sender\n",
+        "[  4]   0.00-5.00   sec  5.08 MBytes  8.51 Mbits/sec                  receiver\n"
+    ],
+    "-l [::]:9990 -t [::1]:5201 --crypt aes --mode fast3 --quiet  --smuxver 2 --smuxbuf 4194304 --sockbuf 8388608": [
+        "[  4]   0.00-5.00   sec  10.0 MBytes  16.8 Mbits/sec    0             sender\n",
+        "[  4]   0.00-5.00   sec  5.08 MBytes  8.52 Mbits/sec                  receiver\n"
+    ],
+    "-l [::]:9990 -t [::1]:5201 --crypt aes --mode fast3 --quiet  --smuxver 2 --smuxbuf 4194304 --sockbuf 16777216": [
+        "[  4]   0.00-5.00   sec  10.0 MBytes  16.8 Mbits/sec    0             sender\n",
+        "[  4]   0.00-5.00   sec  4.92 MBytes  8.26 Mbits/sec                  receiver\n"
+    ]
+}
