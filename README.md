@@ -1,4 +1,5 @@
 # TestKCPTUN
+
 A script for speedtest and get the best config of kcptun.
 
 简单的python脚本用于测试获得[KCPTUN](https://github.com/xtaci/kcptun)的**最优**（带宽最大）配置。
@@ -20,6 +21,8 @@ A script for speedtest and get the best config of kcptun.
    ```shell
    # for ubuntu
    sudo apt install iperf3
+   # for macOS, firstly install homebrew, then run
+   brew install iperf3
    ```
 
 5. 将服务器设置为免密码登录方式（**请在自己的计算机上执行本操作，非个人计算机请勿执行**）
@@ -63,20 +66,25 @@ A script for speedtest and get the best config of kcptun.
    port = 22
    username = 'root'
    pathKcptunServer = '/root/kcptun/server_linux_amd64'
-   pathKcptunClient = './client_linux_amd64'
+   pathKcptunClient = './client_darwin_amd64'
    pathOutJsonFile = './log.json'
    portKcptunServer = '9990'
    portKcptunClient = '9469'
+   errorSkip = True
    setConfig = {
        'crypt': 'aes',
-       'nocomp':'',
-       'mode': 'fast2',
+       'sndwnd': '1024',
+       'rcvwnd': '256',
+       'nocomp': '',
        'quiet': '',
-       'smuxver': '2'
+       'datashard': 10,
+       'parityshard': 3
    }
    optionList = [
-       'sockbuf',
-       'smuxbuf'
+       'mode',
+       'streambuf',
+       'smuxbuf',
+       'smuxver'
    ]
    #######################################################
    ```
@@ -88,10 +96,11 @@ A script for speedtest and get the best config of kcptun.
    - `username`：ssh用户名，默认是`root`
    - `pathKcptunServer`：服务器端kcptun程序的位置（建议用绝对路径）
    - `pathKcptunClient`：客户端kcptun程序的位置（建议用绝对路径）
-   - `pathOutJsonFile`：测速结果输出文件（请确保是`.json`格式）
+   - `pathOutJsonFile`：测速结果输出文件
    - `portKcptunServer`：服务端kcptun监听端口，如果没冲突默认即可
    - `portKcptunClient`：客户端kcptun监听端口，如果没冲突默认即可
-   - `setconfig`：设定部分固定不需要改的配置
+   - `errorSkip`：iperf3出错时是否自动跳过错误，默认为`True`，如果希望出错后脚本停止可设置为`False`
+   - `setconfig`：设定**服务端**部分固定不需要改的配置（客户端配置会自动生成）
    - `optionList`：添加需要搜索的选项
 
 2. 在远端服务器上运行iperf3
@@ -105,12 +114,28 @@ A script for speedtest and get the best config of kcptun.
 3. 在本地运行命令，测试一下服务器iperf3是否正常
 
    ```shell
-   iperf3 -c hostname
+   iperf3 -c  hostname -t 2
    ```
 
-   如果有问题请自行Baidu/Google查询
+   如果一切服务器连接正常应该输出类似下面的结果
 
-4. 运行脚本
+   ```shell
+   Connecting to host hostname, port 5201
+   [  5] local localIP port 65484 connected to hostname port 5201
+   [ ID] Interval           Transfer     Bitrate
+   [  5]   0.00-1.00   sec   140 KBytes  1.14 Mbits/sec
+   [  5]   1.00-2.01   sec  44.0 KBytes   360 Kbits/sec
+   - - - - - - - - - - - - - - - - - - - - - - - - -
+   [ ID] Interval           Transfer     Bitrate
+   [  5]   0.00-2.01   sec   184 KBytes   750 Kbits/sec                  sender
+   [  5]   0.00-2.01   sec  81.8 KBytes   334 Kbits/sec                  receiver
+
+   iperf Done.
+   ```
+
+   网络连接问题请自行Baidu/Google查询
+
+4. 若连接正常即可运行脚本
 
    ```shell
    python3 autokcp.py run
@@ -120,12 +145,18 @@ A script for speedtest and get the best config of kcptun.
 
 ## 其他
 
-1. 脚本运行时间取决于搜索的参数选项数量，示例中搜索了`smuxbuf`和`sockbuf`，总搜索次数=3\*3=9，运行时间=9\*10=90s，还是需要比较多时间的，所以建议一次不要同时搜索太多参数；
+1. 脚本运行时间取决于搜索的参数选项数量，示例中搜索了`smuxbuf`和`sockbuf`，总搜索次数=3\*3=9，运行时间约等于搜索次数乘以5.5sec，即=9\*5.5=50s，还是需要比较多时间的，所以建议一次不要同时搜索太多参数；
 
 2. 脚本运行中如果出错了，或者是人为中断后，请运行以下命令以清理进程
 
    ```shell
    python3 autokcp.py clean
+   ```
+
+   运行后可能会出现如下内容，这是正常现象
+
+   ```shell
+   kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]
    ```
 
 ## 使用示例
@@ -146,26 +177,46 @@ A script for speedtest and get the best config of kcptun.
    运行脚本，等待运行结束后，结果如下
 
    ```shell
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt tea
-   Download: 11.1Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt twofish
-   Download: 10.9Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt xor
-   Download: 10.0Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt aes-192
-   Download: 9.9Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt 3des
-   Download: 9.7Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt aes-128
-   Download: 9.2Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt cast5
-   Download: 8.9Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt blowfish
-   Download: 8.9Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt salsa20
-   Download: 8.7Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxver 1 --smuxbuf 4194304 --crypt xtea
-   Download: 8.7Mbits/sec
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt blowfish
+   ========================
+   Download: 10.4Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt cast5
+   ========================
+   Download: 9.5Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt salsa20
+   ========================
+   Download: 9.5Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt 3des
+   ========================
+   Download: 9.5Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt xor
+   ========================
+   Download: 8.8Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt tea
+   ========================
+   Download: 8.5Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt none
+   ========================
+   Download: 7.9Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt aes
+   ========================
+   Download: 7.6Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt aes-128
+   ========================
+   Download: 7.2Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt xtea
+   ========================
+   Download: 7.1Mbits/sec
+   ========================
    ```
 
 2. 固定其他配置，搜索不同`mode`对于速度的影响
@@ -183,15 +234,20 @@ A script for speedtest and get the best config of kcptun.
    运行脚本，等待运行结束后，结果如下
 
    ```shell
-   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxver 1 --smuxbuf 4194304 --mode fast3
-   Download: 7.5Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxver 1 --smuxbuf 4194304 --mode fast
-   Download: 7.5Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxver 1 --smuxbuf 4194304 --mode fast2
-   Download: 7.3Mbits/sec
-   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxver 1 --smuxbuf 4194304 --mode normal
-   Download: 6.3Mbits/sec
+   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode normal
+   ========================
+   Download: 8.6Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast3
+   ========================
+   Download: 8.5Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast
+   ========================
+   Download: 7.8Mbits/sec
+   ========================
+   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast2
+   ========================
+   Download: 6.7Mbits/sec
+   ========================
    ```
-
-   
-

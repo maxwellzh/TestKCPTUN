@@ -1,2 +1,5 @@
 client_linux_amd64
+client_darwin_amd64
+*.json
 .vscode/
+__pycache__/
