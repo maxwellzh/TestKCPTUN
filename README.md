@@ -145,9 +145,11 @@ A script for speedtest and get the best config of kcptun.
 
 ## 其他
 
-1. 脚本运行时间取决于搜索的参数选项数量，示例中搜索了`smuxbuf`和`sockbuf`，总搜索次数=3\*3=9，运行时间约等于搜索次数乘以5.5sec，即=9\*5.5=50s，还是需要比较多时间的，所以建议一次不要同时搜索太多参数；
+1. 脚本运行时间取决于搜索的参数选项数量，示例中搜索了`smuxbuf`和`sockbuf`，总搜索次数=3\*3=9，运行时间约等于搜索次数乘以3.2sec，即=9\*5.5=28.8s，还是需要比较多时间的，所以建议一次不要同时搜索太多参数；
 
-2. 脚本运行中如果出错了，或者是人为中断后，请运行以下命令以清理进程
+2. 对于按流量计费的VPS谨慎使用，会产生大量流量消耗（～T\*Bandwidth)
+
+3. 脚本运行中如果出错了，或者是人为中断后，请运行以下命令以清理进程
 
    ```shell
    python3 autokcp.py clean
@@ -157,6 +159,12 @@ A script for speedtest and get the best config of kcptun.
 
    ```shell
    kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]
+   ```
+
+4. 从日志文件中获取最优配置信息
+
+   ```shell
+   python3 autokcp.py process
    ```
 
 ## 使用示例

@@ -3,3 +3,4 @@ client_darwin_amd64
 *.json
 .vscode/
 __pycache__/
+myautokcp.py

@@ -29,10 +29,8 @@ setConfig = {
     'crypt': 'aes',
     'sndwnd': '1024',
     'rcvwnd': '256',
-    'nocomp': '',
     'quiet': '',
-    'datashard': 10,
-    'parityshard': 3
+    'nocomp':''
 }
 optionList = [
     'mode',
@@ -79,7 +77,6 @@ options = {
         '2048'
     ],
     'datashard': [
-        0,
         5,
         10,
         15,
@@ -309,7 +306,7 @@ def Run():
     print(optionList)
     countALL = getNumberOptions(config, optionList)
     #print(countALL)
-    print('Est time: %02.0f:%02.0f:%02.0f' % (sec2time(countALL * 5.5)))
+    print('Est time: %02.0f:%02.0f:%02.0f' % (sec2time(countALL * 3.18)))
     TBEG = time.time()
 
     TestOption(config, optionList)
