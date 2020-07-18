@@ -1,0 +1,22 @@
+{
+    "base":{
+        "hostname" : "192.168.0.0.1",
+        "port" : 22,
+        "username" : "root",
+        "pathKcptunServer" : "/root/kcptun/server_linux_amd64",
+        "pathKcptunClient" : "./client_darwin_amd64",
+        "pathOutJsonFile" : "./log.json",
+        "portKcptunServer" : "9990",
+        "portKcptunClient" : "9469",
+        "errorSkip" : true
+    },
+    "setConfig" : {
+        "sndwnd": "1024",
+        "rcvwnd": "1024",
+        "quiet": "",
+        "nocomp":""
+    },
+    "optionalConfig" : [
+        "mode"
+    ]
+}

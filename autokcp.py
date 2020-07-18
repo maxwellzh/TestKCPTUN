@@ -1,44 +1,26 @@
-#!/usr/bin/python3
 import os
 import sys
+import argparse
 import subprocess
 import paramiko
 import json
-import copy
 import shlex
 import time
 
-deepcp = copy.deepcopy
+with open('config.json', 'r') as file:
+    info = json.load(file)
 
-####################  Modify here  ####################
-# hostname Examples:
-# IPv4:
-#     hostname = '192.168.0.1'
-# IPv6:
-#     hostname = 'ff08::1'
-hostname = '192.168.0.1'
-port = 22
-username = 'root'
-pathKcptunServer = '/root/kcptun/server_linux_amd64'
-pathKcptunClient = './client_darwin_amd64'
-pathOutJsonFile = './log.json'
-portKcptunServer = '9990'
-portKcptunClient = '9469'
-errorSkip = True
-setConfig = {
-    'crypt': 'aes',
-    'sndwnd': '1024',
-    'rcvwnd': '256',
-    'quiet': '',
-    'nocomp':''
-}
-optionList = [
-    'mode',
-    'streambuf',
-    'smuxbuf',
-    'smuxver'
-]
-#######################################################
+hostname = info['base']['hostname']
+port = info['base']['port']
+username = info['base']['username']
+pathKcptunServer = info['base']['pathKcptunServer']
+pathKcptunClient = info['base']['pathKcptunClient']
+pathOutJsonFile = info['base']['pathOutJsonFile']
+portKcptunServer = info['base']['portKcptunServer']
+portKcptunClient = info['base']['portKcptunClient']
+errorSkip = info['base']['errorSkip']
+setConfig = info['setConfig']
+optionalConfig = info['optionalConfig']
 
 options = {
     'crypt': [
@@ -82,7 +64,7 @@ options = {
         15,
         20
     ],
-    'parityshard': [x for x in range(1 + 10)],
+    'parityshard': list(range(10)),
     'nocomp': [
         True,
         False
@@ -177,8 +159,8 @@ def speedtest(config):
                 json.dump(logout, file)
 
         countDone += 1
-        print("\r[%02.0f:%02.0f:%02.0f]: %4.0f/%.0f" %
-              (sec2time(time.time()-TBEG) + (countDone, countALL)), end='')
+        print("\r[%02.0f:%02.0f:%02.0f/%02.0f:%02.0f:%02.0f]: %4.0f/%.0f" % (sec2time(time.time() -
+                                                                                      TBEG) + sec2time((time.time()-TBEG)/countDone*countALL) + (countDone, countALL)), end='')
 
     return
 
@@ -190,34 +172,27 @@ if pos[optionA] > pos[optionB]:
 
 
 def posSwap(optionA, optionB):
-    if optionA in optionList and optionB in optionList:
-        tmpA = optionList.index(optionA)
-        tmpB = optionList.index(optionB)
+    if optionA in optionalConfig and optionB in optionalConfig:
+        tmpA = optionalConfig.index(optionA)
+        tmpB = optionalConfig.index(optionB)
         if tmpA > tmpB:
-            optionList[tmpA] = optionB
-            optionList[tmpB] = optionA
+            optionalConfig[tmpA] = optionB
+            optionalConfig[tmpB] = optionA
 
 
-def addconfig(config, config_stack, info):
-    config = deepcp(config_stack)
-    config.append(info)
-    config_stack.append(info)
-    return config, config_stack
+def TestOption(config, optionalConfig):
 
-
-def TestOption(config, optionList):
-
-    if len(optionList) == 0:
-        print("optionList should has at least one element.")
+    if len(optionalConfig) == 0:
+        print("optionalConfig should has at least one element.")
         exit(-1)
 
-    thisOption = optionList.pop()
+    thisOption = optionalConfig.pop()
     if thisOption == 'streambuf' and config['smuxver'] == '1':
-        if len(optionList) == 0:
+        if len(optionalConfig) == 0:
             speedtest(config)
         else:
-            TestOption(config, optionList)
-        optionList.append(thisOption)
+            TestOption(config, optionalConfig)
+        optionalConfig.append(thisOption)
         return
 
     for candidate in options[thisOption]:
@@ -229,19 +204,19 @@ def TestOption(config, optionList):
             if candidate < config['streambuf']:
                 continue
         config[thisOption] = candidate
-        if len(optionList) == 0:
+        if len(optionalConfig) == 0:
             speedtest(config)
         else:
-            TestOption(config, optionList)
+            TestOption(config, optionalConfig)
         del config[thisOption]
-    optionList.append(thisOption)
+    optionalConfig.append(thisOption)
     return
 
 
-def getNumberOptions(config, optionList):
+def getNumberOptions(config, optionalConfig):
     countALL = 1
 
-    for thisOption in optionList:
+    for thisOption in optionalConfig:
         if thisOption not in ('streambuf', 'smuxver', 'smuxbuf'):
             countALL *= len(options[thisOption])
 
@@ -249,7 +224,7 @@ def getNumberOptions(config, optionList):
     candidate_streambuf = []
     if 'smuxbuf' in config:
         candidate_smuxbuf = [config['smuxbuf']]
-    elif 'smuxbuf' in optionList:
+    elif 'smuxbuf' in optionalConfig:
         candidate_smuxbuf = options['smuxbuf']
     else:
         candidate_smuxbuf = ['4194304']
@@ -257,7 +232,7 @@ def getNumberOptions(config, optionList):
 
     if 'streambuf' in config:
         candidate_streambuf = [config['streambuf']]
-    elif 'streambuf' in optionList:
+    elif 'streambuf' in optionalConfig:
         candidate_streambuf = options['streambuf']
     else:
         candidate_streambuf = ['2097152']
@@ -278,7 +253,7 @@ def getNumberOptions(config, optionList):
             countALL *= len(candidate_smuxbuf)
         else:
             countALL *= count
-    elif 'smuxver' in optionList:
+    elif 'smuxver' in optionalConfig:
         countALL *= (count + len(candidate_smuxbuf))
     else:
         countALL *= len(candidate_smuxbuf)
@@ -291,7 +266,7 @@ def getNumberOptions(config, optionList):
     return countALL
 
 
-def Run():
+def Run(args):
     global clientSSH
     global countALL
     global TBEG
@@ -303,22 +278,32 @@ def Run():
     config = setConfig
 
     print('Searching for:')
-    print(optionList)
-    countALL = getNumberOptions(config, optionList)
-    #print(countALL)
-    print('Est time: %02.0f:%02.0f:%02.0f' % (sec2time(countALL * 3.18)))
+    print(optionalConfig)
+    countALL = getNumberOptions(config, optionalConfig)
+
     TBEG = time.time()
 
-    TestOption(config, optionList)
-
+    TestOption(config, optionalConfig)
+    
     clientSSH.close()
     with open(pathOutJsonFile, 'w+') as file:
         json.dump(logout, file)
     print("")
     return
 
+def CheckConnect(args):
 
-def Clean():
+    clientSSH = paramiko.SSHClient()
+    clientSSH.set_missing_host_key_policy(paramiko.AutoAddPolicy)
+    clientSSH.connect(hostname=hostname, port=port, username=username)
+
+    clientSSH.exec_command("iperf3 -s")
+    os.system("iperf3 -c %s -t 2" % hostname)
+    clientSSH.exec_command(
+        'kill $(ps aux | grep \"iperf3\" | grep -v \"grep\" | awk \'{print $2}\')')
+    clientSSH.close()
+
+def Clean(args):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy)
     client.connect(hostname=hostname, port=port, username=username)
@@ -329,7 +314,8 @@ def Clean():
         "kill $(ps aux | grep \"%s\" | grep -v \"grep\" | awk \'{print $2}\')" % pathKcptunClient)
 
 
-def Process(filename=pathOutJsonFile):
+def Fetch(args):
+    filename = args.LogFile
 
     with open(filename, 'r') as file:
         data = json.load(file)
@@ -346,34 +332,47 @@ def Process(filename=pathOutJsonFile):
 
     data = [(key, value) for key, value in data.items()]
     data = sorted(data, key=lambda item: item[1], reverse=True)
+    print("  Download: |        optional ")
+    print("  Mbits/sec |     configurations")
+    print("------------|------------------------")
     for i in range(min(10, len(data))):
-        print(data[i][0])
-        print('=' * 24)
-        print("Download: %.1fMbits/sec" % data[i][1])
-        print('=' * 24)
+        # remove unrelative options
+        tmp_configs = data[i][0].split(' ')
+        out_configs = []
+        last_item = None
+        for item in tmp_configs:
+            if item in ("-l", "-t") or last_item in ("-l", "-t"):
+                pass
+            elif item == "--quiet":
+                pass
+            else:
+                out_configs.append(item)
+            last_item = item
+
+        speed = "{:8.1f}".format(data[i][1])
+        print("{}{}| {}".format(speed, ' '*(12-len(speed)), ' '.join(out_configs)))
     return
 
 
 def main():
-    if len(sys.argv[1:]) == 0:
-        print("Require a command followed with script.\nAvailable command: run, clean, process")
-        exit(-1)
+    parser = argparse.ArgumentParser("Kcptun testing tool.")
+    sub_parsers = parser.add_subparsers()
+    run_parset = sub_parsers.add_parser("run", help="run speed test.")
+    run_parset.set_defaults(func=Run)
 
-    if sys.argv[1] == 'run':
-        Run()
-        Process()
-    elif sys.argv[1] == 'clean':
-        Clean()
-    elif sys.argv[1] == 'process':
-        if sys.argv[1:] == 2:
-            Process(sys.argv[2])
-        else:
-            Process()
-    else:
-        print(
-            "Unknown command \'%s\'.\nAvailable command: run, clean, process" % sys.argv[1])
-        exit(-1)
-    return
+    clean_parset = sub_parsers.add_parser("clean", help="clean remained process.")
+    clean_parset.set_defaults(func=Clean)
+
+    fetch_parset = sub_parsers.add_parser("fetch", help="fetch configs from log file.")
+    fetch_parset.add_argument(
+        "-i", type=str, default=pathOutJsonFile, dest='LogFile', help="specify the log file.")
+    fetch_parset.set_defaults(func=Fetch)
+
+    test_parset = sub_parsers.add_parser("test", help="check iperf3 connectivity")
+    test_parset.set_defaults(func=CheckConnect)
+
+    args = parser.parse_args()
+    args.func(args)
 
 
 if __name__ == "__main__":

@@ -10,10 +10,10 @@ A script for speedtest and get the best config of kcptun.
 
 2. OS: OSX/Linux，如果是windows建议用WSL
 
-3. python包paramiko：
+3. 安装依赖包：
 
    ```shell
-   pip3 install paramiko --user
+   pip3 install -r requiements.txt --user
    ```
 
 4. iperf3，服务器和本地都需要安装
@@ -53,73 +53,64 @@ A script for speedtest and get the best config of kcptun.
 
 ## 使用
 
-1. 在文件`autokcp.py`中的这个位置，填入对应的信息
+1. 在文件`config.json`中的，填入对应的信息
 
-   ```python
-   ####################  Modify here  ####################
-   # hostname Examples:
-   # IPv4:
-   #     hostname = '192.168.0.1'
-   # IPv6:
-   #     hostname = 'ff08::1'
-   hostname = '192.168.0.1'
-   port = 22
-   username = 'root'
-   pathKcptunServer = '/root/kcptun/server_linux_amd64'
-   pathKcptunClient = './client_darwin_amd64'
-   pathOutJsonFile = './log.json'
-   portKcptunServer = '9990'
-   portKcptunClient = '9469'
-   errorSkip = True
-   setConfig = {
-       'crypt': 'aes',
-       'sndwnd': '1024',
-       'rcvwnd': '256',
-       'nocomp': '',
-       'quiet': '',
-       'datashard': 10,
-       'parityshard': 3
+   ```json
+   {
+       "base":{
+           "hostname" : "192.168.0.1",
+           "port" : 22,
+           "username" : "root",
+           "pathKcptunServer" : "/kcptun/server_linux_amd64",
+           "pathKcptunClient" : "./client_darwin_amd64",
+           "pathOutJsonFile" : "./log.json",
+           "portKcptunServer" : "9990",
+           "portKcptunClient" : "9469",
+           "errorSkip" : true
+       },
+       "setConfig" : {
+           "crypt": "aes",
+           "sndwnd": "1024",
+           "rcvwnd": "1024",
+           "quiet": "",
+           "nocomp":""
+       },
+       "optionalConfig" : [
+           "parityshard",
+           "datashard"
+       ]
    }
-   optionList = [
-       'mode',
-       'streambuf',
-       'smuxbuf',
-       'smuxver'
-   ]
-   #######################################################
    ```
-
+   
    各个参数的意义：
-
+   
    - `hostname`：服务器IP地址，支持IPv4和IPv6（IPv6地址不用加中括号）
-   - `port`：ssh登录端口，一般默认即可
+   - `port`：ssh登录端口，一般默认`22`即可
    - `username`：ssh用户名，默认是`root`
    - `pathKcptunServer`：服务器端kcptun程序的位置（建议用绝对路径）
-   - `pathKcptunClient`：客户端kcptun程序的位置（建议用绝对路径）
+- `pathKcptunClient`：客户端kcptun程序的位置（建议用绝对路径）
    - `pathOutJsonFile`：测速结果输出文件
-   - `portKcptunServer`：服务端kcptun监听端口，如果没冲突默认即可
+- `portKcptunServer`：服务端kcptun监听端口，如果没冲突默认即可
    - `portKcptunClient`：客户端kcptun监听端口，如果没冲突默认即可
-   - `errorSkip`：iperf3出错时是否自动跳过错误，默认为`True`，如果希望出错后脚本停止可设置为`False`
+   - `errorSkip`：iperf3出错时是否自动跳过错误，默认为`true`，如果希望出错后脚本停止可设置为`false`
    - `setconfig`：设定**服务端**部分固定不需要改的配置（客户端配置会自动生成）
-   - `optionList`：添加需要搜索的选项
+   - `optionalConfig`：添加需要搜索的选项
+   
+2. 在远端服务器上运行iperf3（在本地启动有问题尚未解决，因此需要在远端服务器运行）
 
-2. 在远端服务器上运行iperf3
-
-   ```shell
+   ```bash
    iperf3 -s
    ```
 
-   （这个出于监控考虑所以没有在本地启动）
-
 3. 在本地运行命令，测试一下服务器iperf3是否正常
 
-   ```shell
+   ```bash
    iperf3 -c  hostname -t 2
    ```
 
    如果一切服务器连接正常应该输出类似下面的结果
 
-   ```shell
+   ```bash
    Connecting to host hostname, port 5201
    [  5] local localIP port 65484 connected to hostname port 5201
    [ ID] Interval           Transfer     Bitrate
@@ -137,7 +128,7 @@ A script for speedtest and get the best config of kcptun.
 
 4. 若连接正常即可运行脚本
 
-   ```shell
+   ```bash
    python3 autokcp.py run
    ```
 
@@ -145,11 +136,11 @@ A script for speedtest and get the best config of kcptun.
 
 ## 其他
 
-1. 脚本运行时间取决于搜索的参数选项数量，示例中搜索了`smuxbuf`和`sockbuf`，总搜索次数=3\*3=9，运行时间约等于搜索次数乘以3.2sec，即=9\*5.5=28.8s，还是需要比较多时间的，所以建议一次不要同时搜索太多参数；
+1. 脚本运行时间取决于搜索的参数选项数量，示例中搜索了`parityshard`和`datashard`，总搜索次数40，需要搜索时间大约为3min28s，还是需要比较多时间的，所以建议一次不要同时搜索太多参数；
 
-2. 对于按流量计费的VPS谨慎使用，会产生大量流量消耗（～T\*Bandwidth)
+2. **按流量计费的VPS谨慎使用**，会产生大量流量消耗（～T\*Bandwidth)
 
-3. 脚本运行中如果出错了，或者是人为中断后，请运行以下命令以清理进程
+3. 脚本运行中如果出错了，或者是人为中断后，请运行以下命令以清理进程（可能需要等一会儿）
 
    ```shell
    python3 autokcp.py clean
@@ -164,98 +155,65 @@ A script for speedtest and get the best config of kcptun.
 4. 从日志文件中获取最优配置信息
 
    ```shell
-   python3 autokcp.py process
+   python3 autokcp.py fetch
    ```
 
 ## 使用示例
 
 1. 固定其他配置，搜索不同加密方式对于速度的影响
 
-   ```python
-   setConfig = {
-       'nocomp':'',
-       'mode': 'fast2',
-       'quiet': ''
-   }
-   optionList = [
-       'crypt'
-   ]
+   ```json
+   "setConfig" : {
+           "sndwnd": "1024",
+           "rcvwnd": "1024",
+           "quiet": "",
+           "nocomp":""
+       },
+   "optionalConfig" : [
+           "crypt"
+       ]
    ```
 
-   运行脚本，等待运行结束后，结果如下
+   运行脚本，等待测试结束后，运行`python3 autokcp.py fetch`结果如下
 
    ```shell
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt blowfish
-   ========================
-   Download: 10.4Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt cast5
-   ========================
-   Download: 9.5Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt salsa20
-   ========================
-   Download: 9.5Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt 3des
-   ========================
-   Download: 9.5Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt xor
-   ========================
-   Download: 8.8Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt tea
-   ========================
-   Download: 8.5Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt none
-   ========================
-   Download: 7.9Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt aes
-   ========================
-   Download: 7.6Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt aes-128
-   ========================
-   Download: 7.2Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --mode fast2 --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt xtea
-   ========================
-   Download: 7.1Mbits/sec
-   ========================
+     Download: |        optional 
+     Mbits/sec |     configurations
+   ------------|------------------------
+       44.9    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt blowfish
+       39.6    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt cast5
+       38.4    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt tea
+       36.0    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt twofish
+       35.3    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt xor
+       34.3    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt xtea
+       31.7    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt aes-192
+       29.9    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt aes
+       27.7    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt sm4
+       27.0    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --crypt salsa20
    ```
 
 2. 固定其他配置，搜索不同`mode`对于速度的影响
 
-   ```python
-   setConfig = {
-       'nocomp':'',
-       'quiet': ''
-   }
-   optionList = [
-       'mode'
-   ]
+   ```json
+   "setConfig" : {
+           "sndwnd": "1024",
+           "rcvwnd": "1024",
+           "quiet": "",
+           "nocomp":""
+       },
+   "optionalConfig" : [
+           "mode"
+    ]
    ```
 
-   运行脚本，等待运行结束后，结果如下
-
+   运行脚本，等待搜索结束后，运行`python3 autokcp.py fetch`结果如下
+   
    ```shell
-   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode normal
-   ========================
-   Download: 8.6Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast3
-   ========================
-   Download: 8.5Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast
-   ========================
-   Download: 7.8Mbits/sec
-   ========================
-   -l [::]:9990 -t [::1]:5201 --nocomp  --quiet  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast2
-   ========================
-   Download: 6.7Mbits/sec
-   ========================
+     Download: |        optional 
+     Mbits/sec |     configurations
+   ------------|------------------------
+       39.6    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast
+       37.3    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast2
+       25.4    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode fast3
+       25.1    | --sndwnd 1024 --rcvwnd 1024  --nocomp  --smuxbuf 4194304 --streambuf 2097152 --smuxver 1 --mode normal
    ```
