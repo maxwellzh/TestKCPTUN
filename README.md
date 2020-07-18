@@ -88,9 +88,9 @@ A script for speedtest and get the best config of kcptun.
    - `port`：ssh登录端口，一般默认`22`即可
    - `username`：ssh用户名，默认是`root`
    - `pathKcptunServer`：服务器端kcptun程序的位置（建议用绝对路径）
-- `pathKcptunClient`：客户端kcptun程序的位置（建议用绝对路径）
+   - `pathKcptunClient`：客户端kcptun程序的位置（建议用绝对路径）
    - `pathOutJsonFile`：测速结果输出文件
-- `portKcptunServer`：服务端kcptun监听端口，如果没冲突默认即可
+   - `portKcptunServer`：服务端kcptun监听端口，如果没冲突默认即可
    - `portKcptunClient`：客户端kcptun监听端口，如果没冲突默认即可
    - `errorSkip`：iperf3出错时是否自动跳过错误，默认为`true`，如果希望出错后脚本停止可设置为`false`
    - `setconfig`：设定**服务端**部分固定不需要改的配置（客户端配置会自动生成）
