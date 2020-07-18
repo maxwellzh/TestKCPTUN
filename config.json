@@ -1,6 +1,6 @@
 {
     "base":{
-        "hostname" : "192.168.0.0.1",
+        "hostname" : "192.168.0.1",
         "port" : 22,
         "username" : "root",
         "pathKcptunServer" : "/root/kcptun/server_linux_amd64",
